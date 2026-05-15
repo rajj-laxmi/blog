@@ -14,7 +14,7 @@ const commentRoutes = require('./routes/commentRoutes');
 
 const app = express();
 
-// Connect DB
+// Connect Database
 connectDB();
 
 // Security
@@ -22,14 +22,23 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 // CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? '*' : (process.env.CLIENT_URL || 'http://localhost:5173'),
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? '*'
+      : process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
 
-// Rate limiting
-app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+// Rate Limiting
+app.use(
+  '/api/',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+  })
+);
 
-// Body parser
+// Body Parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,10 +48,23 @@ app.use('/api/posts', postRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/comments', commentRoutes);
 
-// Error handler (must be last)
+// Serve React Frontend in Production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
+
+// Error Handler
 app.use(errorHandler);
 
+// Start Server
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  console.log(
+    `🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`
+  );
 });
